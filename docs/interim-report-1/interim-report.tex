@@ -40,7 +40,7 @@
 \fancyhead[L]{ \includegraphics[scale=0.3]{img/cwru-formal-logo-blue-no-tag.png} }
 \vspace*{6cm}
 \begin{center}
-\Huge  {Project October}\\
+\includegraphics[scale=0.2]{../../app/assets/images/logo.png}\\
 \vspace{1cm}
 \huge {Read news that you want to read}\\
 \vspace{1cm}
@@ -361,15 +361,16 @@ A pre-Alpha screenshot of the homepage is attached in figure \ref{fig:homepage}.
 The user interface for other pages will be in the same general content area, however there are no further screenshots to share at this time.
 
 \section{Testing \& Evaluation}
-Testing and evaluation will be performed as we progress through the project. Currently, only very minimal testing is implemented, however, we will begin soon.
+Testing and evaluation will be performed as we progress through the project. Currently, only very minimal testing is implemented.
 
 \section{Project Progress}
 % This section should summarize the progress (or the lack of it) so far, and
 % address any issues that have arisen recently.
 The project is progressing satisfactorily.
 We are attempting to follow Agile Design Patterns, and we have been effective at meeting for short periods frequently.
-However, due to the ability of homework and project reports to consume large amounts of time, our intent to follow iterations and releases has somewhat faltered.
-Nonetheless, we remain committed to maintaining team communication via Scrum and continue working.
+On the frontend, we have completed the user creation + login processes, mocked up the homepage, and connected the Thrift library.
+On the backend, we have implemented the API so it responds to requests from the frontend. The recommendation engine is still in-progress.
+We remain committed to maintaining team communication via scrum and continue working.
 
 \subsection{Discussions \& Conclusions}
 % These conclusions are not really conclusions since your project is not yet
@@ -379,8 +380,7 @@ Nonetheless, we remain committed to maintaining team communication via Scrum and
 % schedule and what do you plan to have done by the end of the semester? You
 % can also comment on things which have worked better than expected or proved
 % easier to solve.
-Overall, the project is still on schedule.
-Although the schedule can change wildly depending on overall CWRU workload, we still intend to complete a fully-featured product on-time.
+Overall, the project is still on schedule. We still intend to complete a fully-featured product on-time.
 
 \section{Appendix}
 
@@ -505,12 +505,6 @@ service Recommender {
 }
 \end{verbatim}
 \section{Figures}
-\begin{figure}
-\centering
-\includegraphics[scale=0.65]{img/recsys-performance-with-legend.png}
-\caption{Backend Performance Graph}
-\label{fig:test-performance}
-\end{figure}
 
 
 
