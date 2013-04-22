@@ -3,7 +3,7 @@
 %%%%  Project October
 %%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\documentclass[11pt,letterpaper]{article}
+\documentclass[11pt,letterpaper,titlepage]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[letterpaper,includeheadfoot, top=0.5cm, bottom=3.0cm, right=2.0cm, left=2.0cm]{geometry}
 \renewcommand{\familydefault}{\sfdefault}
@@ -19,6 +19,7 @@
 \usepackage{amssymb}
 \usepackage{url}
 \usepackage{array}
+\usepackage{xcolor}
 
 \usepackage{listings} %Code
 \lstset{language=C, tabsize=4,framexleftmargin=5mm,breaklines=true}
@@ -35,14 +36,12 @@
 %\begin{sf}
 
 \newpage
-\pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{ \includegraphics[scale=0.3]{img/cwru-formal-logo-blue-no-tag.png} }
+\fancyhead[L]{Project October}
 \vspace*{6cm}
 \begin{center}
-\Huge  {Project October}\\
-\vspace{1cm}
-\huge {Read news that you want to read}\\
+\includegraphics[width=0.4\textwidth]{img/logo.png}\\
+\textcolor{black!70}{Read the news you want to read}\\
 \vspace{1cm}
 \end{center}
 %----------------- Names ------------------------
@@ -54,6 +53,7 @@ Project: & Project October\\
 Date: & \today
 \end{tabular}
 \end{flushright}
+\thispagestyle{empty}
 
 \newpage
 \pagestyle{fancy}
@@ -96,7 +96,7 @@ With custom recommendations for each user, we believe that the October  communit
 
 %----Everything else----%
 
-\section{Project October: Hybrid Recommender System}
+\section{Project October: Recommender System}
 
 Due to the ever-growing amount of information available online, the need for a highly developed personalization and filtering system is growing significantly.
 Recommender systems constitute a specific type of information filtering that
@@ -382,7 +382,7 @@ we want to scrape.
 \centering
 \includegraphics[scale=0.5]{img/nytimes.png}
 \captionsetup{singlelinecheck=off}
-\caption[foo]{\begin{small}Sections of webpage colored by desirability. \begin{description}
+\caption[Webpage Sections]{\begin{small}Sections of webpage colored by desirability. \begin{description}
  \item[Green] Sections are best for determining content of article. Also
   includes potential images to use as a headline image for the article.
  \item[Yellow] Sections may contain useful information but are not part of the
