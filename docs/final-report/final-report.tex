@@ -228,9 +228,18 @@ The API should be as simple as possible to maintain the functionality of October
 The API is defined in a Thrift definitions file in the project-october-api repository on GitHub\cite{project-october-api}.
 
 \subsection{Backend} % Expand into multiple sections?
-The backend is a recommender black-box which provides suggestions via an API to the frontend.
-The actual implementation of the recommendation service is arbitrary, only that it implements the services of the API effectively.
-For more about the implementation of the backend, consult Section \ref{sec:backend-implementation}.
+\subsubsection{Time Requirements}
+A website presents challenges in terms of time for a service of this sort.  It
+is necessary to return the results within 1 second of request in the 50th
+percentile case.  Currently, our results are being return in under 1 second in
+75 percent of requests. This meets this requirement.
+\subsubsection{Accuracy Requirements}
+Measuring accuracy directly is difficult.  Our metric for this case is that our
+upvote rate must be higher than our downvote rate.  This is because we assume
+that users will upvote articles they find interesting and do the opposite to the
+opposite type of article. Currently, according to our measurements, 40 percent
+of users who receive recommendations upvote, whereas only 18 percent downvote.
+We take this as a preliminary metric of our success.
 
 \section{Application Architecture}
 \subsection{Frontend}
@@ -366,7 +375,7 @@ Once this text is extracted, Pismo relies upon the
 Phrasie~\cite{phrasie} library to determine keyword tokens.
 The initial version of Pismo we used was based upon a naive list of (token,
 freqency) pairs, however Phrasie uses parts-of-speech to determine keywords and
-gives them a weight rather than a straight frequency.  The strength of this
+gives them a weight based on estimated importance rather than a straight frequency.  The strength of this
 approach is that it results in a much higher signal-to-noise ratio than the
 naive approach.  A weakness is that we've now reduced our possible languages
 down to just english.  As time goes on we can modify this approach to either
@@ -395,12 +404,80 @@ we want to scrape.
 
 \subsection{Backend}
 \label{sec:backend-implementation}
+The backend recommender service is a Scala~\cite{scala} application that uses
+MongoDB~\cite{mongodb} as its persistent data store. The frontend communicates
+with it using the API that we defined using thrift.  When a post is submitted --
+either through a user submission or via a feed -- the results are sent over.
+When a user loads the homepage or searches for a string, the backend is invoked
+to service the request.
+
 \subsubsection{Vectorization of Posts}
-The scraper from section \ref{sec:scraping}
+The scraper from section \ref{sec:scraping} presents a list of (token, weight)
+pairs to the backend through the API.  This is stored in the database as a
+document where the key is the document id from the frontend.  In addition, each
+token in the document is incremented by the weight of the document so that we
+can calculate the document frequency when it is needed. The id of this document
+is also added to a list on the token so that we can find this post later when we
+need it.
 \subsubsection{Vectorization of Users}
+Users are also a vector in the key-value database.  The user vector is updated
+in the same way as a document vector except that the document frequency of each
+term is not incremented.  A user's vector is updated whenever the user performs
+some sort of action on a document.  These actions are defined in the API, but
+include actions such as voting up or down, reading, or commenting on a post.
+Now that each user is a vector in the database and each post is a document in
+the database, we can operate on each one.
+\subsubsection{Inverted Index}
+Now that we have all of the terms that a user will be potentially interested in,
+we must find the documents in the database that are interesting to the user.  We
+can do this easily by merging the lists of posts that each token contains for
+documents that contain it. This is known as an inverted index.
 \subsubsection{Tf-Idf}
-\subsubsection{Signals}
+We use a term-frequency/inverse-document-frequency approach to scaling the
+vectors in preparation to return our ranked results. We apply two scaling
+factors to each of our terms in our term vectors. The first is
+term-frequency(TF).  This scales the raw term up by the number of times it is
+present in a document.  So if an article mentions CWRU 15 times, it is more
+likely to be about CWRU than a document that mentions it 0 or even 1 times.
+Next we scale it by inverse-document-frequency(IDF).  This means that terms that
+are common in all documents are weighted less. So for example the term ``it'' is
+common to just about every document we record and therefore is not a very valid
+signal for us to recommend on.
+\subsubsection{Dot Product}
+Now that we've scaled both the user and document vectors, we can perform a
+dot-product on both vectors such that each term in the user vector that is
+present in the document vector is multiplied and summed with each of the other
+similar terms.  As the reader will most likely know, vectors that are pointing
+in similar directions will have higher dot-products than vectors that are
+divergent.  We use this fact to rank the posts in order of most likely to be
+interesting to the user to least and return this ranking to the frontend after
+passing it through one last filter.
 \subsubsection{Time Scaling}
+We also want to only return to the user newer results so that there is a
+constant ``churn'' of articles on the frontpage.  We first limit the results
+returned from the database to the number of results that the frontend requested.
+Next we apply a scaling function to all results so that newer results are
+favored over old ones.  The function is as follows
+\begin{align}
+weight(x, dt) = \left\{
+     \begin{array}{lr}
+       x & : dt < T\\
+      x / \ln{(dt + T)} & : dt \geq T
+     \end{array}
+   \right.
+\end{align}
+Where $dt$ is the time from the time from the time the post was submitted until
+the recommendation was requested, $x$ is the initial weight supplied by the
+Tf-Idf and dot-product, and $T$ is a time constant we decide upon.  In our
+current implementation, $T$ is set at 10 hours so that posts can stay on the
+frontpage unhindered for that amount of time. Once this scaling is applied to
+each of the posts we're returning, we can send them back to the frontend using
+the API.
+\subsubsection{Searching}
+A side effect of storing the documents in that manner is that we can easily
+implement full-text-search by the frontend submitting a vector of a search term
+and the backend treating it just like a user is treated in the above
+explanation.
 
 \subsection{Frontend/Backend API}
 \label{sec:api}
@@ -447,7 +524,8 @@ From the beginning, we split the team into two parts, frontend and backend.
 With respect to the frontend, Tom and Mika have worked together on the development and design.
 The biggest difficulty here is to create an aesthetic represention of the news so that the user will be inclined to continue using the service.
 As for the backend, Brian has been tasked with creating both the service architecture and the recommender engine.
-This includes the implementation of our backend's TF-IDF algorithm and the Scala connector to the Thrift API and Mongo that computes recommendations.
+This includes the implementation of our backend's TF-IDF algorithm and the Scala
+connector to the Thrift API and MongoDB~\cite{mongodb} that computes recommendations.
 
 \subsection{Release v1.0}
 \label{sec:release1.0}
@@ -472,7 +550,17 @@ The user interface for other pages will be in the same general content area, how
 
 \section{Testing \& Evaluation}
 \label{sec:testing}
-Testing and evaluation will be performed as we progress through the project. Currently, only very minimal testing is implemented.
+As it currently stands, over 40 total tests are implented in the combined
+frontend and backend.   Each of these tests must pass for us to merge new
+features to be added to the project.  Both the frontend and backend are tracked
+on Travis-CI\footnote{\url{https://travis-ci.org/}} so that the developers can
+be alerted when something is broken in a build.  Our coverage is excellent in
+terms of both functional and integration tests.  This was a huge boon to our
+development as it allowed us to ensure we did not break old functionality when
+we added new functions in addition to allowing us to write tests beforehand and
+write our code so that it passed the tests.  Test driven development of this
+sort was certainly not the primary way we developed, but it did come in handy
+from time to time.
 
 \section{Final Status, Conclusions, and the Future}
 \label{sec:progress}
@@ -499,17 +587,28 @@ We have enjoyed working on this, and we hope to continue refining it after the c
 We will be keeping in contact with users to build upon October, enhancing the service and hopefully increasing user retention.
 
 \subsection{Advantages \& Disadvantages of a Service Oriented Architecture}
+Overall we are pleased with our usage of a service-oriented-architecture(SOA).
+It had its issues such as increased development time and complexity, but it also
+made development in teams easier and forced us to specify an interface for
+communication between two logically separated components.  If we had not used an
+SOA, we may have ended up doing just as well, but as time progresses, we should
+be able to add features with more ease and deprecate older ones without as much
+disruption to the service.  Perhaps one mistake was working in two languages for
+each of the services and using two databases.  This increased complexity and
+prevented developers from being able to easily contribute to both  parts easily.
+However, Scala and Ruby both proved to be ideal for their usage as did Postgres
+and MongoDB -- perhaps the correct choices were made after all.
 
 \section{Appendix}
 
 % ============= References ==============
-\newpage
-\newpage
 \begin{thebibliography}{6}
   \bibitem{september} \url{http://en.wikipedia.org/wiki/Eternal\_September}
   \bibitem{thrift} \url{http://en.wikipedia.org/wiki/Apache\_Thrift}
   \bibitem{tfidf} \url{http://en.wikipedia.org/wiki/Tf-idf}
   \bibitem{pismo} \url{https://github.com/peterc/pismo}
+  \bibitem{mongodb} \url{http://www.mongodb.org/}
+  \bibitem{scala} \url{http://www.scala-lang.org/}
   \bibitem{phrasie} \url{https://github.com/ashleyw/phrasie}
   \bibitem{mixpanel} \url{http://mixpanel.com}
   \bibitem{project-october-api} \url{https://github.com/bis12/project-october-api}
@@ -581,12 +680,33 @@ service Recommender {
 \subsection{Frontend Database}
 \begin{figure}
 \centering
-\includegraphics{db_diagram.pdf}
+\includegraphics[angle=90, scale=1.55]{db_diagram.pdf}
 \caption{Frontend Database Relational Diagram}
 \label{fig:database}
 \end{figure}
 Please see Figure \ref{fig:database}.
 \subsection{Backend Database}
+MongoDB~\cite{mongodb} is a schemaless database and as such there is no schema
+to show here. However, the backend uses ``models'' to access the data and as
+such there is a pseudo-schema which we can present here. The notation is simply
+cleaned up Scala without the actual logic attached.
+
+\begin{verbatim}
+class User(
+    id: Long,
+    tokens: Map[String, Long],
+    friends: Seq[Long])
+
+class Token(
+    id: String,
+    df: Long,
+    posts: Seq[Long])
+
+class Post(
+    id: Long,
+    posted: DateTime,
+    tokens: Map[String, Long])
+\end{verbatim}
 
 \section{User Manual}
 
@@ -620,7 +740,6 @@ You can also cancel your account if you are so inclined.
 
 Returning back to your account page, if you click on 'View/Modify Keywords', you will be presented with a list of the keywords currently associated with your account. Here, you can delete them, add new ones, or click the 'Clear top 20 keywords'.
 
-\section{Programmers Manual}
 % ============= FIN ==============
 
 \end{document}
