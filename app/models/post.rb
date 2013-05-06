@@ -97,7 +97,10 @@ class Post < ActiveRecord::Base
     end
 
     def fetch_from_url(url)
-      post = Pismo::Document.new(url, :reader => :cluster)
+      post = Pismo::Document.new(url,
+        # :reader => :cluster,        # Pismo error! (?!?)
+        :image_extractor => true,
+      )
       images = post.images || []
       leader = post.lede # This is the first couple sentences.
       keywords = post.keywords(
